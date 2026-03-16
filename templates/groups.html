@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groups - ChatApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-back:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-logout:hover {
+            background: #c82333;
+        }
+
+        .create-group-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .create-group-section h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-group input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-create {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-create:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-create:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .group-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .group-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .group-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .group-info {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .group-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-open {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-open:hover {
+            background: #5568d3;
+        }
+
+        .btn-leave {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-leave:hover {
+            background: #c82333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .header-buttons {
+                width: 100%;
+            }
+
+            .header-buttons button {
+                flex: 1;
+            }
+
+            .groups-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👥 Groups</h1>
+            <div class="header-buttons">
+                <button class="btn btn-back" onclick="goBack()">← Back to Dashboard</button>
+                <button class="btn btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="create-group-section">
+            <h2>Create New Group</h2>
+            <div class="form-group">
+                <input type="text" id="groupNameInput" placeholder="Enter group name...">
+                <button class="btn-create" onclick="createGroup()">Create Group</button>
+            </div>
+            <div id="messageContainer"></div>
+        </div>
+
+        <div class="search-section" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+            <h2>Search Groups</h2>
+            <div class="form-group">
+                <input type="text" id="searchInput" placeholder="Search by name or ID..." oninput="searchGroups()">
+            </div>
+        </div>
+
+        <div id="groupsContainer">
+            <div class="loading">
+                <span class="spinner"></span>
+                Loading groups...
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api-client.js?v=2"></script>
+    <script src="/static/js/utils.js?v=2"></script>
+    <script>
+        let api = null;
+        const user = getCurrentUser();
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            requireAuth();
+            
+            // Initialize API client
+            api = new ChatAPIClient('http://localhost:8000/api', user.token);
+            
+            await loadGroups();
+        });
+
+        async function loadGroups(search = '') {
+            try {
+                const groups = await api.getGroups(search);
+                displayGroups(groups);
+            } catch (error) {
+                console.error('Error loading groups:', error);
+                document.getElementById('groupsContainer').innerHTML = 
+                    '<div class="loading">Error loading groups</div>';
+                showError('Failed to load groups');
+            }
+        }
+
+        function searchGroups() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            loadGroups(searchTerm);
+        }
+
+        function displayGroups(groups) {
+            const container = document.getElementById('groupsContainer');
+            
+            if (!groups || groups.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No groups found. Create one to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="groups-grid">
+                    ${groups.map(group => `
+                        <div class="group-card">
+                            <div class="group-name">${escapeHTML(group.name)}</div>
+                            <div class="group-info">
+                                👥 ${group.member_count || group.members_count || 0} members
+                                ${group.admin === user.id ? ' • 👑 Admin' : ''}
+                            </div>
+                            <div class="group-actions">
+                                <button class="btn-action btn-open" onclick="openGroup(${group.id}, '${escapeHTML(group.name)}')">
+                                    Open Chat
+                                </button>
+                                ${group.admin === user.id ? 
+                                    `<button class="btn-action btn-leave" onclick="deleteGroup(${group.id}, '${escapeHTML(group.name)}')">
+                                        Delete
+                                    </button>` :
+                                    `<button class="btn-action btn-leave" onclick="leaveGroup(${group.id})">
+                                        Leave
+                                    </button>`
+                                }
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function createGroup() {
+            const input = document.getElementById('groupNameInput');
+            const groupName = input.value.trim();
+            const messageContainer = document.getElementById('messageContainer');
+
+            if (!groupName) {
+                showMessage('Please enter a group name', 'error', messageContainer);
+                return;
+            }
+
+            try {
+                const button = event.target;
+                button.disabled = true;
+                
+                await api.createGroup(groupName);
+                showMessage(`Group "${groupName}" created successfully!`, 'success', messageContainer);
+                input.value = '';
+                await loadGroups();
+            } catch (error) {
+                console.error('Error creating group:', error);
+                showMessage('Error creating group', 'error', messageContainer);
+            } finally {
+                event.target.disabled = false;
+            }
+        }
+
+        async function leaveGroup(groupId) {
+            if (!confirm('Are you sure you want to leave this group?')) return;
+
+            try {
+                await api.leaveGroup(groupId);
+                showMessage('Left group successfully', 'success', document.getElementById('messageContainer'));
+                await loadGroups();
+            } catch (error) {
+                console.error('Error leaving group:', error);
+                showMessage('Error leaving group', 'error', document.getElementById('messageContainer'));
+            }
+        }
+
+        async function deleteGroup(groupId, groupName) {
+            if (!confirm(`Are you sure you want to delete "${groupName}"? This will remove all messages and cannot be undone.`)) return;
+
+            try {
+                await api.deleteGroup(groupId);
+                showMessage('Group deleted successfully', 'success', document.getElementById('messageContainer'));
+                await loadGroups();
+            } catch (error) {
+                console.error('Error deleting group:', error);
+                showMessage(error.message || 'Error deleting group', 'error', document.getElementById('messageContainer'));
+            }
+        }
+
+        function openGroup(groupId, groupName) {
+            window.location.href = `/group-chat/?id=${groupId}&name=${encodeURIComponent(groupName)}`;
+        }
+
+        function showMessage(text, type, container) {
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            container.innerHTML = '';
+            container.appendChild(message);
+            setTimeout(() => message.remove(), 3000);
+        }
+
+        function goBack() {
+            window.location.href = '/dashboard/';
+        }
+    </script>
+</body>
+</html>

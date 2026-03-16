@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat - ChatApp</title>
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .members-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .members-title {
+            padding: 10px 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        .member-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .member-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .member-name {
+            flex: 1;
+            color: #333;
+        }
+
+        .member-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .member-status.online {
+            background: #4caf50;
+        }
+
+        .sidebar-footer {
+            padding: 15px 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-back {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #5568d3;
+        }
+
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-logout:hover {
+            background: #c82333;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .header-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.own {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 60%;
+        }
+
+        .message-sender {
+            font-size: 0.85rem;
+            color: #999;
+            margin-bottom: 3px;
+            margin-left: 5px;
+        }
+
+        .message.own .message-sender {
+            text-align: right;
+            margin-right: 5px;
+            margin-left: 0;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message.own .message-bubble {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.other .message-bubble {
+            background: #f0f0f0;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #bbb;
+            margin-top: 3px;
+            margin-left: 5px;
+        }
+
+        .message.own .message-time {
+            color: rgba(255, 255, 255, 0.7);
+            text-align: right;
+            margin-right: 5px;
+            margin-left: 0;
+        }
+
+        /* Chat Input */
+        .chat-input-area {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area textarea {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            resize: none;
+            max-height: 100px;
+        }
+
+        .chat-input-area textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-send {
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            align-self: flex-end;
+        }
+
+        .btn-send:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 250px;
+            }
+
+            .message-content {
+                max-width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2 id="groupName">Loading...</h2>
+                <p id="memberCount">Loading...</p>
+            </div>
+
+            <div class="members-list">
+                <div class="members-title">Members</div>
+                <div id="membersList">
+                    <div class="loading">
+                        <span class="spinner"></span>
+                        Loading members...
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-small btn-back" onclick="goBack()">← Back</button>
+                <button class="btn-small btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div id="chatContent">
+                <div class="empty-state">
+                    <p>Loading group chat...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api-client.js?v=2"></script>
+    <script src="/static/js/utils.js?v=2"></script>
+    <script>
+        let api = null;
+        let groupId = null;
+        let groupName = null;
+        const user = getCurrentUser();
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            requireAuth();
+            
+            // Initialize API client
+            api = new ChatAPIClient('http://localhost:8000/api', user.token);
+
+            // Get group ID from URL
+            const params = new URLSearchParams(window.location.search);
+            groupId = params.get('id');
+            groupName = params.get('name');
+
+            if (!groupId) {
+                window.location.href = '/groups/';
+                return;
+            }
+
+            await initializeGroupChat();
+        });
+
+        async function initializeGroupChat() {
+            try {
+                document.getElementById('groupName').textContent = groupName || 'Group Chat';
+                await loadMembers();
+                await loadMessages();
+            } catch (error) {
+                console.error('Error initializing group chat:', error);
+                showError('Failed to load group chat');
+            }
+        }
+
+        async function loadMembers() {
+            try {
+                const members = await api.getGroupMembers(groupId);
+                const room = await api.getGroup(groupId);
+                
+                document.getElementById('memberCount').textContent = `${members.length} members`;
+                displayMembers(members);
+            } catch (error) {
+                console.error('Error loading members:', error);
+                showError('Failed to load members');
+            }
+        }
+
+        function displayMembers(memberships) {
+            const list = document.getElementById('membersList');
+            
+            if (!memberships || memberships.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No members</div>';
+                return;
+            }
+
+            list.innerHTML = memberships.map(membership => {
+                try {
+                    const userData = safeGet(membership, 'user', membership);
+                    const userId = safeGet(userData, 'id');
+                    const username = safeGet(userData, 'username', 'Unknown');
+                    const isCurrentUser = userId === user.id;
+                    const initial = username[0].toUpperCase();
+                    
+                    return `
+                        <div class="member-item">
+                            <div class="member-avatar">${initial}</div>
+                            <div class="member-name">${escapeHTML(username)}${isCurrentUser ? ' (You)' : ''}</div>
+                            <div class="member-status online"></div>
+                        </div>
+                    `;
+                } catch (e) {
+                    console.error('Error rendering member:', membership, e);
+                    return '';
+                }
+            }).join('');
+        }
+
+        async function loadMessages() {
+            try {
+                const messages = await api.getGroupMessages(groupId);
+                displayChat(messages);
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                showError('Failed to load messages');
+            }
+        }
+
+        function displayChat(messages) {
+            const chatContent = document.getElementById('chatContent');
+            
+            const messagesHtml = messages.map(msg => {
+                try {
+                    const senderId = safeGet(msg, 'sender.id', safeGet(msg, 'sender_id'));
+                    const senderUsername = safeGet(msg, 'sender.username', safeGet(msg, 'sender_username', 'Unknown'));
+                    const isOwn = senderId === user.id;
+                    const time = formatTime(msg.timestamp);
+                    
+                    return `
+                        <div class="message ${isOwn ? 'own' : 'other'}">
+                            <div class="message-content">
+                                ${!isOwn ? `<div class="message-sender">${escapeHTML(senderUsername)}</div>` : ''}
+                                <div class="message-bubble">
+                                    ${escapeHTML(msg.content)}
+                                    <div class="message-time">${time}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    console.error('Error rendering message:', msg, e);
+                    return '';
+                }
+            }).join('');
+
+            chatContent.innerHTML = `
+                <div class="chat-header">
+                    <div>
+                        <h3>${escapeHTML(groupName)}</h3>
+                        <div class="header-info">Group Chat</div>
+                    </div>
+                </div>
+                <div class="chat-messages" id="messagesContainer">
+                    ${messagesHtml || '<div class="empty-state"><p>No messages yet. Start the conversation!</p></div>'}
+                </div>
+                <div class="chat-input-area">
+                    <textarea id="messageInput" placeholder="Type a message..." rows="1"></textarea>
+                    <button class="btn-send" onclick="sendMessage()">Send</button>
+                </div>
+            `;
+
+            // Scroll to bottom
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+
+            // Focus input
+            const input = document.getElementById('messageInput');
+            if (input) {
+                input.focus();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            try {
+                input.disabled = true;
+                await api.sendGroupMessage(groupId, content);
+                input.value = '';
+                await loadMessages();
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showError('Failed to send message');
+            } finally {
+                input.disabled = false;
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/groups/';
+        }
+    </script>
+</body>
+</html>

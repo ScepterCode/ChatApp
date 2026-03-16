@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - ChatApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .conversations-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .conversation-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .conversation-item:hover {
+            background: #f9f9f9;
+        }
+
+        .conversation-item.active {
+            background: #f0f0f0;
+            border-left: 3px solid #667eea;
+            padding-left: 17px;
+        }
+
+        .conversation-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .conversation-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .conversation-preview {
+            font-size: 0.85rem;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-back {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #5568d3;
+        }
+
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-logout:hover {
+            background: #c82333;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.own {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 60%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message.own .message-bubble {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.other .message-bubble {
+            background: #f0f0f0;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-sender {
+            font-size: 0.85rem;
+            color: #999;
+            margin-bottom: 3px;
+            margin-left: 5px;
+        }
+
+        .message.own .message-sender {
+            text-align: right;
+            margin-right: 5px;
+            margin-left: 0;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #bbb;
+            margin-top: 3px;
+        }
+
+        .message.own .message-time {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Chat Input */
+        .chat-input-area {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-area textarea {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            resize: none;
+            max-height: 100px;
+        }
+
+        .chat-input-area textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-send {
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            align-self: flex-end;
+        }
+
+        .btn-send:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 250px;
+            }
+
+            .message-bubble {
+                max-width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>💬 Conversations</h2>
+                <p id="currentUsername">Loading...</p>
+            </div>
+
+            <div class="conversations-list" id="conversationsList">
+                <div class="loading">
+                    <span class="spinner"></span>
+                    Loading conversations...
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-small btn-back" onclick="goBack()">← Back</button>
+                <button class="btn-small btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div id="chatContent">
+                <div class="empty-state">
+                    <p>Select a conversation to start chatting</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/api';
+        let accessToken = localStorage.getItem('accessToken');
+        let userId = localStorage.getItem('userId');
+        let username = localStorage.getItem('username');
+        let currentConversationId = null;
+
+        // Check authentication
+        window.addEventListener('load', () => {
+            if (!accessToken) {
+                window.location.href = '/login/';
+                return;
+            }
+            initializeChat();
+        });
+
+        async function initializeChat() {
+            document.getElementById('currentUsername').textContent = `@${username}`;
+            await loadConversations();
+        }
+
+        async function loadConversations() {
+            try {
+                const res = await fetch(`${API_URL}/chat/direct-messages/conversations/`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                if (res.status === 401) {
+                    localStorage.clear();
+                    window.location.href = '/login/';
+                    return;
+                }
+
+                const data = await res.json();
+                displayConversations(data);
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+                document.getElementById('conversationsList').innerHTML = 
+                    '<div class="loading">Error loading conversations</div>';
+            }
+        }
+
+        function displayConversations(conversations) {
+            const list = document.getElementById('conversationsList');
+            
+            if (!conversations || conversations.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No conversations yet</div>';
+                return;
+            }
+
+            list.innerHTML = conversations.map(conv => {
+                const otherUser = conv.other_user;
+                const preview = conv.last_message.substring(0, 30) + (conv.last_message.length > 30 ? '...' : '');
+                
+                return `
+                    <div class="conversation-item" onclick="openConversation(${otherUser.id}, '${otherUser.username}')">
+                        <div class="conversation-info">
+                            <div class="conversation-name">${otherUser.username}</div>
+                            <div class="conversation-preview">${preview}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function openConversation(recipientId, recipientUsername) {
+            currentConversationId = recipientId;
+            
+            try {
+                const res = await fetch(`${API_URL}/chat/direct-messages/with_user/?user_id=${recipientId}`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                if (res.status === 401) {
+                    localStorage.clear();
+                    window.location.href = '/login/';
+                    return;
+                }
+
+                const data = await res.json();
+                const messages = data.results || data;
+                displayChat(recipientUsername, messages, recipientId);
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+            }
+        }
+
+        function displayChat(recipientUsername, messages, recipientId) {
+            const chatContent = document.getElementById('chatContent');
+            
+            const messagesHtml = messages.map(msg => {
+                const isOwn = msg.sender_id === parseInt(userId);
+                const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                return `
+                    <div class="message ${isOwn ? 'own' : 'other'}">
+                        ${!isOwn ? `<div class="message-sender">${msg.sender_username}</div>` : ''}
+                        <div class="message-bubble">
+                            ${msg.content}
+                            <div class="message-time">${time}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            chatContent.innerHTML = `
+                <div class="chat-header">
+                    <h3>${recipientUsername}</h3>
+                </div>
+                <div class="chat-messages" id="messagesContainer">
+                    ${messagesHtml || '<div class="empty-state"><p>No messages yet. Start the conversation!</p></div>'}
+                </div>
+                <div class="chat-input-area">
+                    <textarea id="messageInput" placeholder="Type a message..." rows="1"></textarea>
+                    <button class="btn-send" onclick="sendMessage(${recipientId})">Send</button>
+                </div>
+            `;
+
+            // Scroll to bottom
+            const container = document.getElementById('messagesContainer');
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+
+            // Focus input
+            document.getElementById('messageInput').focus();
+        }
+
+        async function sendMessage(recipientId) {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            try {
+                const res = await fetch(`${API_URL}/chat/direct-messages/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        recipient: recipientId,
+                        content: content
+                    })
+                });
+
+                if (res.ok) {
+                    input.value = '';
+                    // Reload conversation
+                    const username = document.querySelector('.chat-header h3').textContent;
+                    await openConversation(recipientId, username);
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/dashboard/';
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
