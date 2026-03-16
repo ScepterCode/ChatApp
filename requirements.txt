@@ -20,6 +20,12 @@ psycopg2-binary==2.9.11
 # Redis
 redis==5.2.0
 
+# Background Tasks
+celery==5.6.2
+billiard==4.2.4
+amqp==5.3.1
+kombu==5.6.2
+
 # AI/ML
 detoxify==0.5.2
 transformers==5.3.0
