@@ -46,7 +46,7 @@ class ChatAPIClient {
             const responseData = await response.json();
 
             if (!response.ok) {
-                throw new Error(responseData.message || `HTTP ${response.status}`);
+                throw new Error(responseData.error || responseData.message || `HTTP ${response.status}`);
             }
 
             return responseData;
@@ -105,12 +105,49 @@ class ChatAPIClient {
     // ==================== GROUPS ====================
 
     /**
-     * Get all groups with optional search
+     * Get user's groups (only groups they are members of)
      */
     async getGroups(search = '') {
         const endpoint = search ? `/chat/rooms/?search=${encodeURIComponent(search)}` : '/chat/rooms/';
         const response = await this.request('GET', endpoint);
         return this.safeArray(response);
+    }
+
+    /**
+     * Search public groups (groups user is not a member of)
+     */
+    async searchPublicGroups(search) {
+        const response = await this.request('GET', `/chat/rooms/public/?search=${encodeURIComponent(search)}`);
+        return this.safeArray(response);
+    }
+
+    /**
+     * Request to join a group
+     */
+    async requestJoinGroup(groupId, message = '') {
+        return this.request('POST', `/chat/rooms/${groupId}/request_join/`, { message });
+    }
+
+    /**
+     * Get join requests for a group (admin only)
+     */
+    async getJoinRequests(groupId) {
+        const response = await this.request('GET', `/chat/rooms/${groupId}/join_requests/`);
+        return this.safeArray(response);
+    }
+
+    /**
+     * Approve a join request (admin only)
+     */
+    async approveJoinRequest(groupId, requestId) {
+        return this.request('POST', `/chat/rooms/${groupId}/approve_request/`, { request_id: requestId });
+    }
+
+    /**
+     * Reject a join request (admin only)
+     */
+    async rejectJoinRequest(groupId, requestId) {
+        return this.request('POST', `/chat/rooms/${groupId}/reject_request/`, { request_id: requestId });
     }
 
     /**
@@ -123,8 +160,8 @@ class ChatAPIClient {
     /**
      * Create group
      */
-    async createGroup(name) {
-        return this.request('POST', '/chat/rooms/', { name });
+    async createGroup(name, description = '', isPrivate = false) {
+        return this.request('POST', '/chat/rooms/', { name, description, is_private: isPrivate });
     }
 
     /**
@@ -139,6 +176,13 @@ class ChatAPIClient {
      */
     async leaveGroup(groupId) {
         return this.request('POST', `/chat/rooms/${groupId}/leave/`);
+    }
+
+    /**
+     * Remove member from group (admin only)
+     */
+    async removeMemberFromGroup(groupId, userId) {
+        return this.request('POST', `/chat/rooms/${groupId}/remove_member/`, { user_id: userId });
     }
 
     /**

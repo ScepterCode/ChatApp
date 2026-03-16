@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .message { margin: 5px 0; padding: 5px; background: #f8f9fa; border-left: 3px solid #007bff; }
+        input, button { padding: 8px; margin: 5px; }
+        #messages { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    
+    <div id="status" class="status disconnected">Disconnected</div>
+    
+    <div>
+        <label>Room ID: <input type="text" id="roomId" value="1" /></label>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    
+    <div>
+        <label>Message: <input type="text" id="messageInput" placeholder="Type a message..." /></label>
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    
+    <h3>Messages:</h3>
+    <div id="messages"></div>
+
+    <script>
+        let socket = null;
+        
+        function connect() {
+            const roomId = document.getElementById('roomId').value;
+            if (!roomId) {
+                alert('Please enter a room ID');
+                return;
+            }
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/chat/${roomId}/`;
+            
+            addMessage(`Connecting to: ${wsUrl}`);
+            
+            socket = new WebSocket(wsUrl);
+            
+            socket.onopen = function(e) {
+                document.getElementById('status').className = 'status connected';
+                document.getElementById('status').textContent = 'Connected';
+                addMessage('✅ WebSocket connected successfully');
+            };
+            
+            socket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                addMessage(`📨 Received: ${JSON.stringify(data, null, 2)}`);
+            };
+            
+            socket.onclose = function(e) {
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('status').textContent = 'Disconnected';
+                addMessage(`❌ WebSocket closed: ${e.code} - ${e.reason}`);
+            };
+            
+            socket.onerror = function(e) {
+                addMessage(`🚨 WebSocket error: ${e}`);
+            };
+        }
+        
+        function disconnect() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (!content || !socket || socket.readyState !== WebSocket.OPEN) {
+                alert('Not connected or no message to send');
+                return;
+            }
+            
+            const message = {
+                type: 'chat_message',
+                content: content
+            };
+            
+            socket.send(JSON.stringify(message));
+            addMessage(`📤 Sent: ${JSON.stringify(message)}`);
+            input.value = '';
+        }
+        
+        function addMessage(text) {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'message';
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${text}`;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        // Allow Enter key to send message
+        document.getElementById('messageInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

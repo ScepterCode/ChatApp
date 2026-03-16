@@ -7,6 +7,10 @@ channels>=4.0.0
 channels-redis>=4.1.0
 daphne>=4.0.0
 
+# SSL/TLS Support for Daphne
+twisted[tls]>=22.0.0
+pyOpenSSL>=23.0.0
+
 # Authentication
 djangorestframework-simplejwt>=5.3.0
 
@@ -28,3 +32,6 @@ detoxify>=0.5.0
 transformers>=4.30.0
 torch>=2.0.0
 celery>=5.3.0
+
+# Email
+resend>=0.6.0

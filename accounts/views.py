@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from django.contrib.auth import authenticate
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.core.cache import cache
 from django.conf import settings
@@ -211,27 +211,84 @@ class PasswordResetView(APIView):
                 # Create reset URL
                 reset_url = f"http://localhost:8000/reset-password/?uid={uid}&token={token}"
                 
-                # Send email
-                subject = 'Password Reset - ChatApp'
-                message = f"""Hello {user.username},
+                # Plain text version
+                text_content = f"""Hello {user.username},
 
 You requested a password reset for your ChatApp account.
 
-Click the link below to reset your password:
-{reset_url}
+Click this link to reset your password: {reset_url}
 
 If you didn't request this, please ignore this email.
 
 Best regards,
 ChatApp Team"""
                 
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    fail_silently=False,
+                # HTML version
+                html_content = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #4F46E5; margin: 0;">ChatApp</h1>
+                        <p style="color: #666; margin: 5px 0;">Secure Chat Platform</p>
+                    </div>
+                    
+                    <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px; margin-bottom: 20px;">
+                        <h2 style="color: #333; margin-top: 0;">Password Reset Request</h2>
+                        <p style="color: #555; line-height: 1.6;">
+                            Hello <strong>{user.username}</strong>,
+                        </p>
+                        <p style="color: #555; line-height: 1.6;">
+                            You requested a password reset for your ChatApp account. 
+                            Click the button below to reset your password:
+                        </p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{reset_url}" 
+                               style="background-color: #4F46E5;
+                                      color: white;
+                                      padding: 14px 28px;
+                                      text-decoration: none;
+                                      border-radius: 6px;
+                                      display: inline-block;
+                                      font-weight: 600;
+                                      font-size: 16px;">
+                                Reset My Password
+                            </a>
+                        </div>
+                        
+                        <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                            <strong>Security Note:</strong> This link expires in 24 hours for your security.
+                        </p>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                        <p style="color: #666; font-size: 14px; margin: 0;">
+                            If you didn't request this password reset, you can safely ignore this email. 
+                            Your password will remain unchanged.
+                        </p>
+                        <p style="color: #666; font-size: 14px; margin: 10px 0 0 0;">
+                            If the button doesn't work, copy and paste this link into your browser:<br>
+                            <a href="{reset_url}" style="color: #4F46E5; word-break: break-all;">{reset_url}</a>
+                        </p>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                        <p style="color: #999; font-size: 12px; margin: 0;">
+                            Best regards,<br>
+                            <strong>ChatApp Team</strong>
+                        </p>
+                    </div>
+                </div>
+                """
+                
+                # Send email with both text and HTML versions
+                msg = EmailMultiAlternatives(
+                    subject='Password Reset - ChatApp',
+                    body=text_content,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[user.email],
                 )
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
                 
                 # Increment rate limit counter (disabled for testing)
                 # cache.set(cache_key, reset_count + 1, 3600)  # 1 hour timeout
@@ -268,7 +325,7 @@ ChatApp Team"""
             except Exception as e:
                 # Handle any other unexpected errors (like MultipleObjectsReturned)
                 logger.error(f"Unexpected error in password reset for {email}: {str(e)}")
-                cache.set(cache_key, reset_count + 1, 3600)  # Still increment to prevent abuse
+                # Return success message for security (don't reveal if email exists)
                 return Response({
                     'message': 'Password reset email sent. Check your email for instructions.'
                 }, status=status.HTTP_200_OK)

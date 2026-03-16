@@ -108,11 +108,18 @@ STATICFILES_DIRS = [
 # Channels
 ASGI_APPLICATION = 'core.asgi.application'
 
+# Redis Configuration (Upstash with connection pooling)
+REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379/0')
+
+# Parse Redis URL for manual configuration
+from urllib.parse import urlparse
+_redis_url = urlparse(REDIS_URL)
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            'hosts': [REDIS_URL],
         },
     },
 }
@@ -162,25 +169,31 @@ CORS_ALLOW_CREDENTIALS = True
 from core.logging_config import LOGGING
 
 # Email Configuration
-if os.getenv('EMAIL_HOST'):
-    # Production/Real email settings
+if config('RESEND_API_KEY', default=None):
+    # Resend email backend
+    EMAIL_BACKEND = 'core.email_backend.ResendEmailBackend'
+    RESEND_API_KEY = config('RESEND_API_KEY')
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='ChatApp <noreply@chatapp.com>')
+    print(f"📧 Email configured for: Resend API ({DEFAULT_FROM_EMAIL})")
+elif os.getenv('EMAIL_HOST'):
+    # Production/Real SMTP email settings
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.getenv('EMAIL_HOST')
     EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
     EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = f'ChatApp <{EMAIL_HOST_USER}>'
     print(f"📧 Email configured for: {EMAIL_HOST_USER}")
 else:
     # Development mode - print emails to console only
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'ChatApp <noreply@chatapp.com>'
     print("📧 Email configured for: Console output only")
 
-DEFAULT_FROM_EMAIL = 'ChatApp <noreply@chatapp.com>'
-
-# Celery Configuration
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+# Celery Configuration (Upstash Redis)
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

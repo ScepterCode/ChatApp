@@ -576,7 +576,7 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:8000/api';
+        const API_URL = `http://${window.location.host}/api`;
         let accessToken = localStorage.getItem('accessToken');
         let userId = localStorage.getItem('userId');
         let username = localStorage.getItem('username');

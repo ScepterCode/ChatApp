@@ -20,8 +20,13 @@ urlpatterns = [
     path('chat/', TemplateView.as_view(template_name='chat.html'), name='chat'),
     path('groups/', TemplateView.as_view(template_name='groups.html'), name='groups'),
     path('group-chat/', TemplateView.as_view(template_name='group-chat.html'), name='group-chat'),
+    path('websocket-test/', TemplateView.as_view(template_name='websocket-test.html'), name='websocket-test'),
 ]
 
 # Serve static files in development
 if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT or os.path.join(settings.BASE_DIR, 'static'))
+    from django.contrib.staticfiles.views import serve
+    from django.urls import re_path
+    urlpatterns += [
+        re_path(r'^static/(?P<path>.*)$', serve),
+    ]

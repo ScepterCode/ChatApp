@@ -6,8 +6,10 @@ User = get_user_model()
 
 class Room(models.Model):
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_rooms')
+    is_private = models.BooleanField(default=False)  # Private groups require approval
     
     class Meta:
         ordering = ['-created_at']
@@ -15,10 +17,37 @@ class Room(models.Model):
     def __str__(self):
         return self.name
 
+class JoinRequest(models.Model):
+    PENDING = 'pending'
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+    
+    STATUS_CHOICES = [
+        (PENDING, 'Pending'),
+        (APPROVED, 'Approved'),
+        (REJECTED, 'Rejected'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='join_requests')
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='join_requests')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING)
+    message = models.TextField(blank=True, null=True)  # Optional message from user
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_requests')
+    
+    class Meta:
+        unique_together = ('user', 'room')
+        ordering = ['-requested_at']
+    
+    def __str__(self):
+        return f"{self.user.username} -> {self.room.name} ({self.status})"
+
 class Membership(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='room_memberships')
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='memberships')
     joined_at = models.DateTimeField(auto_now_add=True)
+    is_admin = models.BooleanField(default=False)  # Allow multiple admins
 
     class Meta:
         unique_together = ('user', 'room')

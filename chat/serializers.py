@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Room, Membership, Message, DirectMessage, 
+    Room, Membership, Message, DirectMessage, JoinRequest,
     UserPresence, TypingIndicator, MessageReaction
 )
 from accounts.serializers import ProfileSerializer
@@ -8,22 +8,49 @@ from accounts.serializers import ProfileSerializer
 class RoomSerializer(serializers.ModelSerializer):
     admin_username = serializers.CharField(source='admin.username', read_only=True)
     member_count = serializers.SerializerMethodField()
+    is_member = serializers.SerializerMethodField()
+    has_pending_request = serializers.SerializerMethodField()
     
     class Meta:
         model = Room
-        fields = ('id', 'name', 'admin', 'admin_username', 'created_at', 'member_count')
+        fields = ('id', 'name', 'description', 'admin', 'admin_username', 'created_at', 
+                 'member_count', 'is_private', 'is_member', 'has_pending_request')
         read_only_fields = ('admin', 'created_at')
     
     def get_member_count(self, obj):
         return obj.memberships.count()
+    
+    def get_is_member(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.memberships.filter(user=request.user).exists()
+        return False
+    
+    def get_has_pending_request(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.join_requests.filter(user=request.user, status='pending').exists()
+        return False
+
+class JoinRequestSerializer(serializers.ModelSerializer):
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    room_name = serializers.CharField(source='room.name', read_only=True)
+    reviewed_by_username = serializers.CharField(source='reviewed_by.username', read_only=True)
+    
+    class Meta:
+        model = JoinRequest
+        fields = ('id', 'user', 'user_username', 'room', 'room_name', 'status', 'message', 
+                 'requested_at', 'reviewed_at', 'reviewed_by', 'reviewed_by_username')
+        read_only_fields = ('user', 'requested_at', 'reviewed_at', 'reviewed_by')
 
 class MembershipSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
     room_name = serializers.CharField(source='room.name', read_only=True)
     
     class Meta:
         model = Membership
-        fields = ('id', 'user', 'user_username', 'room', 'room_name', 'joined_at')
+        fields = ('id', 'user', 'user_username', 'user_email', 'room', 'room_name', 'joined_at', 'is_admin')
         read_only_fields = ('user', 'joined_at')
 
 class MessageReactionSerializer(serializers.ModelSerializer):

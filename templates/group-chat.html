@@ -298,6 +298,42 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            height: 200px;
+            color: #999;
+            font-style: italic;
+        }
+
+        /* Message Indicators */
+        .flag-indicator {
+            margin-left: 8px;
+            font-size: 0.8rem;
+        }
+
+        .sentiment-indicator {
+            margin-left: 8px;
+            font-size: 0.8rem;
+        }
+
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            z-index: 1000;
+        }
+
+        .connection-status.connected {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: #f44336;
+            color: white;
+        }
             height: 100%;
             color: #999;
             text-align: center;
@@ -383,6 +419,7 @@
         let api = null;
         let groupId = null;
         let groupName = null;
+        let chatSocket = null;
         const user = getCurrentUser();
 
         // Initialize on page load
@@ -390,7 +427,7 @@
             requireAuth();
             
             // Initialize API client
-            api = new ChatAPIClient('http://localhost:8000/api', user.token);
+            api = new ChatAPIClient(`http://${window.location.host}/api`, user.token);
 
             // Get group ID from URL
             const params = new URLSearchParams(window.location.search);
@@ -403,7 +440,110 @@
             }
 
             await initializeGroupChat();
+            connectWebSocket();
         });
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/chat/${groupId}/?token=${user.token}`;
+            
+            chatSocket = new WebSocket(wsUrl);
+            
+            chatSocket.onopen = function(e) {
+                console.log('WebSocket connected');
+                updateConnectionStatus('connected');
+                showSuccess('Connected to real-time chat');
+            };
+            
+            chatSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                handleWebSocketMessage(data);
+            };
+            
+            chatSocket.onclose = function(e) {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus('disconnected');
+                showError('Disconnected from real-time chat');
+                // Attempt to reconnect after 3 seconds
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            chatSocket.onerror = function(e) {
+                console.error('WebSocket error:', e);
+                updateConnectionStatus('disconnected');
+                showError('Chat connection error');
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'chat_message':
+                    addMessageToChat(data);
+                    break;
+                case 'sentiment_update':
+                    updateMessageSentiment(data);
+                    break;
+                case 'typing_indicator':
+                    handleTypingIndicator(data);
+                    break;
+                case 'error':
+                    showError(data.message);
+                    break;
+            }
+        }
+
+        function addMessageToChat(messageData) {
+            const container = document.getElementById('messagesContainer');
+            if (!container) return;
+
+            const isOwn = messageData.sender.id === user.id;
+            const time = formatTime(messageData.timestamp);
+            
+            const messageHtml = `
+                <div class="message ${isOwn ? 'own' : 'other'}" data-message-id="${messageData.id}">
+                    <div class="message-content">
+                        ${!isOwn ? `<div class="message-sender">${escapeHTML(messageData.sender.username)}</div>` : ''}
+                        <div class="message-bubble">
+                            ${escapeHTML(messageData.content)}
+                            ${messageData.is_flagged ? '<span class="flag-indicator" title="Flagged content">⚠️</span>' : ''}
+                            <div class="message-time">${time}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove empty state if it exists
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            container.insertAdjacentHTML('beforeend', messageHtml);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateMessageSentiment(data) {
+            const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
+            if (messageElement) {
+                const bubble = messageElement.querySelector('.message-bubble');
+                const sentimentIcon = getSentimentIcon(data.sentiment);
+                bubble.insertAdjacentHTML('beforeend', `<span class="sentiment-indicator" title="Sentiment: ${data.sentiment}">${sentimentIcon}</span>`);
+            }
+        }
+
+        function getSentimentIcon(sentiment) {
+            switch(sentiment) {
+                case 'POSITIVE': return '😊';
+                case 'NEGATIVE': return '😔';
+                case 'NEUTRAL': return '😐';
+                default: return '';
+            }
+        }
+
+        function handleTypingIndicator(data) {
+            // Implementation for typing indicators
+            console.log(`${data.username} is ${data.is_typing ? 'typing' : 'not typing'}`);
+        }
 
         async function initializeGroupChat() {
             try {
@@ -518,10 +658,16 @@
                 container.scrollTop = container.scrollHeight;
             }
 
-            // Focus input
+            // Focus input and add keyboard support
             const input = document.getElementById('messageInput');
             if (input) {
                 input.focus();
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
             }
         }
 
@@ -529,19 +675,43 @@
             const input = document.getElementById('messageInput');
             const content = input.value.trim();
 
-            if (!content) return;
+            if (!content || !chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+                if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+                    showError('Not connected to chat. Trying to reconnect...');
+                    connectWebSocket();
+                }
+                return;
+            }
 
             try {
                 input.disabled = true;
-                await api.sendGroupMessage(groupId, content);
+                
+                // Send message via WebSocket
+                chatSocket.send(JSON.stringify({
+                    type: 'chat_message',
+                    content: content
+                }));
+                
                 input.value = '';
-                await loadMessages();
             } catch (error) {
                 console.error('Error sending message:', error);
                 showError('Failed to send message');
             } finally {
                 input.disabled = false;
+                input.focus();
             }
+        }
+
+        function updateConnectionStatus(status) {
+            let statusElement = document.querySelector('.connection-status');
+            if (!statusElement) {
+                statusElement = document.createElement('div');
+                statusElement.className = 'connection-status';
+                document.body.appendChild(statusElement);
+            }
+            
+            statusElement.className = `connection-status ${status}`;
+            statusElement.textContent = status === 'connected' ? 'Connected to live chat' : 'Disconnected from live chat';
         }
 
         function goBack() {

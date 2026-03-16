@@ -73,7 +73,43 @@
             background: #c82333;
         }
 
-        .create-group-section {
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            background: #e9ecef;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
             background: white;
             padding: 20px;
             border-radius: 12px;
@@ -81,7 +117,7 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .create-group-section h2 {
+        .section h2 {
             margin-bottom: 15px;
             color: #333;
         }
@@ -92,7 +128,7 @@
             margin-bottom: 15px;
         }
 
-        .form-group input {
+        .form-group input, .form-group textarea {
             flex: 1;
             padding: 12px 15px;
             border: 2px solid #e0e0e0;
@@ -101,13 +137,18 @@
             font-family: inherit;
         }
 
-        .form-group input:focus {
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .btn-create {
+        .btn-primary {
             padding: 12px 30px;
             background: #667eea;
             color: white;
@@ -118,12 +159,12 @@
             transition: all 0.2s;
         }
 
-        .btn-create:hover {
+        .btn-primary:hover {
             background: #5568d3;
             transform: translateY(-2px);
         }
 
-        .btn-create:disabled {
+        .btn-primary:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
@@ -141,7 +182,6 @@
             padding: 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: all 0.2s;
-            cursor: pointer;
         }
 
         .group-card:hover {
@@ -154,6 +194,13 @@
             font-weight: 600;
             color: #333;
             margin-bottom: 10px;
+        }
+
+        .group-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            line-height: 1.4;
         }
 
         .group-info {
@@ -187,6 +234,21 @@
             background: #5568d3;
         }
 
+        .btn-join {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-join:hover {
+            background: #218838;
+        }
+
+        .btn-pending {
+            background: #ffc107;
+            color: #212529;
+            cursor: not-allowed;
+        }
+
         .btn-leave {
             background: #dc3545;
             color: white;
@@ -194,6 +256,15 @@
 
         .btn-leave:hover {
             background: #c82333;
+        }
+
+        .btn-admin {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-admin:hover {
+            background: #138496;
         }
 
         .empty-state {
@@ -248,6 +319,51 @@
             100% { transform: rotate(360deg); }
         }
 
+        .join-request-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .join-request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .join-request-user {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .join-request-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-approve {
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+            padding: 5px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -266,6 +382,10 @@
             .groups-grid {
                 grid-template-columns: 1fr;
             }
+
+            .tabs {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -279,70 +399,161 @@
             </div>
         </div>
 
-        <div class="create-group-section">
-            <h2>Create New Group</h2>
-            <div class="form-group">
-                <input type="text" id="groupNameInput" placeholder="Enter group name...">
-                <button class="btn-create" onclick="createGroup()">Create Group</button>
-            </div>
-            <div id="messageContainer"></div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('my-groups')">My Groups</button>
+            <button class="tab" onclick="switchTab('discover')">Discover Groups</button>
+            <button class="tab" onclick="switchTab('create')">Create Group</button>
+            <button class="tab" onclick="switchTab('admin')" id="adminTab" style="display: none;">Admin Panel</button>
         </div>
 
-        <div class="search-section" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
-            <h2>Search Groups</h2>
-            <div class="form-group">
-                <input type="text" id="searchInput" placeholder="Search by name or ID..." oninput="searchGroups()">
+        <!-- My Groups Tab -->
+        <div id="my-groups" class="tab-content active">
+            <div class="section">
+                <h2>My Groups</h2>
+                <div class="form-group">
+                    <input type="text" id="myGroupsSearch" placeholder="Search my groups..." oninput="searchMyGroups()">
+                </div>
+                <div id="myGroupsContainer">
+                    <div class="loading">
+                        <span class="spinner"></span>
+                        Loading your groups...
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div id="groupsContainer">
-            <div class="loading">
-                <span class="spinner"></span>
-                Loading groups...
+        <!-- Discover Groups Tab -->
+        <div id="discover" class="tab-content">
+            <div class="section">
+                <h2>Discover Groups</h2>
+                <div class="form-group">
+                    <input type="text" id="discoverSearch" placeholder="Search for groups to join...">
+                    <button class="btn-primary" onclick="searchPublicGroups()">Search</button>
+                </div>
+                <div id="discoverContainer">
+                    <div class="empty-state">
+                        <p>Enter a search term to find groups you can join</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Group Tab -->
+        <div id="create" class="tab-content">
+            <div class="section">
+                <h2>Create New Group</h2>
+                <div class="form-group">
+                    <input type="text" id="groupNameInput" placeholder="Group name..." required>
+                </div>
+                <div class="form-group">
+                    <textarea id="groupDescriptionInput" placeholder="Group description (optional)..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="isPrivateInput"> Private group (requires approval to join)
+                    </label>
+                </div>
+                <button class="btn-primary" onclick="createGroup()">Create Group</button>
+                <div id="createMessageContainer"></div>
+            </div>
+        </div>
+
+        <!-- Admin Panel Tab -->
+        <div id="admin" class="tab-content">
+            <div class="section">
+                <h2>Join Requests</h2>
+                <div id="joinRequestsContainer">
+                    <div class="loading">
+                        <span class="spinner"></span>
+                        Loading join requests...
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="/static/js/api-client.js?v=2"></script>
-    <script src="/static/js/utils.js?v=2"></script>
+    <script src="/static/js/api-client.js?v=3"></script>
+    <script src="/static/js/utils.js?v=3"></script>
     <script>
         let api = null;
         const user = getCurrentUser();
+        let currentTab = 'my-groups';
 
         // Initialize on page load
         window.addEventListener('load', async () => {
             requireAuth();
             
             // Initialize API client
-            api = new ChatAPIClient('http://localhost:8000/api', user.token);
+            api = new ChatAPIClient(`http://${window.location.host}/api`, user.token);
             
-            await loadGroups();
+            await loadMyGroups();
+            await checkAdminStatus();
         });
 
-        async function loadGroups(search = '') {
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            currentTab = tabName;
+
+            // Load content based on tab
+            if (tabName === 'my-groups') {
+                loadMyGroups();
+            } else if (tabName === 'admin') {
+                loadJoinRequests();
+            }
+        }
+
+        async function loadMyGroups(search = '') {
             try {
                 const groups = await api.getGroups(search);
-                displayGroups(groups);
+                displayMyGroups(groups);
             } catch (error) {
                 console.error('Error loading groups:', error);
-                document.getElementById('groupsContainer').innerHTML = 
+                document.getElementById('myGroupsContainer').innerHTML = 
                     '<div class="loading">Error loading groups</div>';
                 showError('Failed to load groups');
             }
         }
 
-        function searchGroups() {
-            const searchTerm = document.getElementById('searchInput').value.trim();
-            loadGroups(searchTerm);
+        function searchMyGroups() {
+            const searchTerm = document.getElementById('myGroupsSearch').value.trim();
+            loadMyGroups(searchTerm);
         }
 
-        function displayGroups(groups) {
-            const container = document.getElementById('groupsContainer');
+        async function searchPublicGroups() {
+            const searchTerm = document.getElementById('discoverSearch').value.trim();
+            if (!searchTerm) {
+                showError('Please enter a search term');
+                return;
+            }
+
+            try {
+                const groups = await api.searchPublicGroups(searchTerm);
+                displayPublicGroups(groups);
+            } catch (error) {
+                console.error('Error searching groups:', error);
+                showError('Failed to search groups');
+            }
+        }
+
+        function displayMyGroups(groups) {
+            const container = document.getElementById('myGroupsContainer');
             
             if (!groups || groups.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <p>No groups found. Create one to get started!</p>
+                        <p>You haven't joined any groups yet.</p>
+                        <p>Use the "Discover Groups" tab to find groups to join!</p>
                     </div>
                 `;
                 return;
@@ -353,16 +564,21 @@
                     ${groups.map(group => `
                         <div class="group-card">
                             <div class="group-name">${escapeHTML(group.name)}</div>
+                            ${group.description ? `<div class="group-description">${escapeHTML(group.description)}</div>` : ''}
                             <div class="group-info">
-                                👥 ${group.member_count || group.members_count || 0} members
+                                👥 ${group.member_count || 0} members
                                 ${group.admin === user.id ? ' • 👑 Admin' : ''}
+                                ${group.is_private ? ' • 🔒 Private' : ' • 🌐 Public'}
                             </div>
                             <div class="group-actions">
                                 <button class="btn-action btn-open" onclick="openGroup(${group.id}, '${escapeHTML(group.name)}')">
                                     Open Chat
                                 </button>
                                 ${group.admin === user.id ? 
-                                    `<button class="btn-action btn-leave" onclick="deleteGroup(${group.id}, '${escapeHTML(group.name)}')">
+                                    `<button class="btn-action btn-admin" onclick="manageGroup(${group.id})">
+                                        Manage
+                                    </button>
+                                    <button class="btn-action btn-leave" onclick="deleteGroup(${group.id}, '${escapeHTML(group.name)}')">
                                         Delete
                                     </button>` :
                                     `<button class="btn-action btn-leave" onclick="leaveGroup(${group.id})">
@@ -376,12 +592,51 @@
             `;
         }
 
-        async function createGroup() {
-            const input = document.getElementById('groupNameInput');
-            const groupName = input.value.trim();
-            const messageContainer = document.getElementById('messageContainer');
+        function displayPublicGroups(groups) {
+            const container = document.getElementById('discoverContainer');
+            
+            if (!groups || groups.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No groups found matching your search.</p>
+                    </div>
+                `;
+                return;
+            }
 
-            if (!groupName) {
+            container.innerHTML = `
+                <div class="groups-grid">
+                    ${groups.map(group => `
+                        <div class="group-card">
+                            <div class="group-name">${escapeHTML(group.name)}</div>
+                            ${group.description ? `<div class="group-description">${escapeHTML(group.description)}</div>` : ''}
+                            <div class="group-info">
+                                👥 ${group.member_count || 0} members • Admin: ${escapeHTML(group.admin_username)}
+                                ${group.is_private ? ' • 🔒 Private' : ' • 🌐 Public'}
+                            </div>
+                            <div class="group-actions">
+                                ${group.has_pending_request ? 
+                                    `<button class="btn-action btn-pending" disabled>
+                                        Request Pending
+                                    </button>` :
+                                    `<button class="btn-action btn-join" onclick="requestJoinGroup(${group.id}, '${escapeHTML(group.name)}')">
+                                        Request to Join
+                                    </button>`
+                                }
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function createGroup() {
+            const name = document.getElementById('groupNameInput').value.trim();
+            const description = document.getElementById('groupDescriptionInput').value.trim();
+            const isPrivate = document.getElementById('isPrivateInput').checked;
+            const messageContainer = document.getElementById('createMessageContainer');
+
+            if (!name) {
                 showMessage('Please enter a group name', 'error', messageContainer);
                 return;
             }
@@ -390,15 +645,38 @@
                 const button = event.target;
                 button.disabled = true;
                 
-                await api.createGroup(groupName);
-                showMessage(`Group "${groupName}" created successfully!`, 'success', messageContainer);
-                input.value = '';
-                await loadGroups();
+                await api.createGroup(name, description, isPrivate);
+                showMessage(`Group "${name}" created successfully!`, 'success', messageContainer);
+                
+                // Clear form
+                document.getElementById('groupNameInput').value = '';
+                document.getElementById('groupDescriptionInput').value = '';
+                document.getElementById('isPrivateInput').checked = false;
+                
+                // Refresh groups and switch to my groups tab
+                await loadMyGroups();
+                switchTab('my-groups');
             } catch (error) {
                 console.error('Error creating group:', error);
-                showMessage('Error creating group', 'error', messageContainer);
+                showMessage(error.message || 'Error creating group', 'error', messageContainer);
             } finally {
                 event.target.disabled = false;
+            }
+        }
+
+        async function requestJoinGroup(groupId, groupName) {
+            const message = prompt(`Request to join "${groupName}".\n\nOptional message to admin:`);
+            if (message === null) return; // User cancelled
+
+            try {
+                const response = await api.requestJoinGroup(groupId, message);
+                showSuccess(response.message || 'Join request sent successfully');
+                
+                // Refresh the discover results
+                searchPublicGroups();
+            } catch (error) {
+                console.error('Error requesting to join group:', error);
+                showError(error.message || 'Error sending join request');
             }
         }
 
@@ -406,12 +684,12 @@
             if (!confirm('Are you sure you want to leave this group?')) return;
 
             try {
-                await api.leaveGroup(groupId);
-                showMessage('Left group successfully', 'success', document.getElementById('messageContainer'));
-                await loadGroups();
+                const response = await api.leaveGroup(groupId);
+                showSuccess(response.message || 'Left group successfully');
+                await loadMyGroups();
             } catch (error) {
                 console.error('Error leaving group:', error);
-                showMessage('Error leaving group', 'error', document.getElementById('messageContainer'));
+                showError(error.message || 'Error leaving group');
             }
         }
 
@@ -419,17 +697,135 @@
             if (!confirm(`Are you sure you want to delete "${groupName}"? This will remove all messages and cannot be undone.`)) return;
 
             try {
-                await api.deleteGroup(groupId);
-                showMessage('Group deleted successfully', 'success', document.getElementById('messageContainer'));
-                await loadGroups();
+                const response = await api.deleteGroup(groupId);
+                showSuccess(response.message || 'Group deleted successfully');
+                await loadMyGroups();
             } catch (error) {
                 console.error('Error deleting group:', error);
-                showMessage(error.message || 'Error deleting group', 'error', document.getElementById('messageContainer'));
+                showError(error.message || 'Error deleting group');
+            }
+        }
+
+        async function checkAdminStatus() {
+            try {
+                const groups = await api.getGroups();
+                const isAdmin = groups.some(group => group.admin === user.id);
+                
+                if (isAdmin) {
+                    document.getElementById('adminTab').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+            }
+        }
+
+        async function loadJoinRequests() {
+            try {
+                const groups = await api.getGroups();
+                const adminGroups = groups.filter(group => group.admin === user.id);
+                
+                if (adminGroups.length === 0) {
+                    document.getElementById('joinRequestsContainer').innerHTML = `
+                        <div class="empty-state">
+                            <p>You are not an admin of any groups</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // For now, show a placeholder since the API endpoint has issues
+                document.getElementById('joinRequestsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <p>Join request management is available</p>
+                        <p>You are admin of ${adminGroups.length} group(s)</p>
+                        <p>API endpoint needs to be fixed for full functionality</p>
+                    </div>
+                `;
+                
+                // TODO: Uncomment when API is fixed
+                /*
+                let allRequests = [];
+                for (const group of adminGroups) {
+                    try {
+                        const requests = await api.getJoinRequests(group.id);
+                        allRequests = allRequests.concat(requests.map(req => ({...req, group_name: group.name})));
+                    } catch (error) {
+                        console.error(`Error loading requests for group ${group.id}:`, error);
+                    }
+                }
+                
+                displayJoinRequests(allRequests);
+                */
+            } catch (error) {
+                console.error('Error loading join requests:', error);
+                document.getElementById('joinRequestsContainer').innerHTML = 
+                    '<div class="loading">Error loading join requests</div>';
+            }
+        }
+
+        function displayJoinRequests(requests) {
+            const container = document.getElementById('joinRequestsContainer');
+            
+            if (!requests || requests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No pending join requests</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = requests.map(request => `
+                <div class="join-request-card">
+                    <div class="join-request-header">
+                        <div>
+                            <div class="join-request-user">${escapeHTML(request.user_username)}</div>
+                            <div style="font-size: 0.9rem; color: #666;">wants to join "${escapeHTML(request.group_name)}"</div>
+                        </div>
+                        <div class="join-request-actions">
+                            <button class="btn-approve" onclick="approveRequest(${request.room}, ${request.id})">Approve</button>
+                            <button class="btn-reject" onclick="rejectRequest(${request.room}, ${request.id})">Reject</button>
+                        </div>
+                    </div>
+                    ${request.message ? `<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-style: italic;">"${escapeHTML(request.message)}"</div>` : ''}
+                    <div style="font-size: 0.8rem; color: #999; margin-top: 10px;">
+                        Requested: ${formatDate(request.requested_at)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function approveRequest(groupId, requestId) {
+            try {
+                const response = await api.approveJoinRequest(groupId, requestId);
+                showSuccess(response.message || 'Request approved');
+                await loadJoinRequests();
+            } catch (error) {
+                console.error('Error approving request:', error);
+                showError(error.message || 'Error approving request');
+            }
+        }
+
+        async function rejectRequest(groupId, requestId) {
+            try {
+                const response = await api.rejectJoinRequest(groupId, requestId);
+                showSuccess(response.message || 'Request rejected');
+                await loadJoinRequests();
+            } catch (error) {
+                console.error('Error rejecting request:', error);
+                showError(error.message || 'Error rejecting request');
             }
         }
 
         function openGroup(groupId, groupName) {
             window.location.href = `/group-chat/?id=${groupId}&name=${encodeURIComponent(groupName)}`;
+        }
+
+        function manageGroup(groupId) {
+            // For now, just open the group chat - could be expanded to a management interface
+            const group = document.querySelector(`[onclick*="manageGroup(${groupId})"]`).closest('.group-card');
+            const groupName = group.querySelector('.group-name').textContent;
+            openGroup(groupId, groupName);
         }
 
         function showMessage(text, type, container) {
@@ -438,7 +834,7 @@
             message.textContent = text;
             container.innerHTML = '';
             container.appendChild(message);
-            setTimeout(() => message.remove(), 3000);
+            setTimeout(() => message.remove(), 5000);
         }
 
         function goBack() {
