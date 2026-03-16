@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: chatapp
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --no-input
+      python manage.py migrate
+    startCommand: daphne -p $PORT -b 0.0.0.0 core.asgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        sync: false  # Will be set manually to Neon URL
+      - key: REDIS_URL
+        sync: false  # Will be set manually to Upstash URL
+      - key: RESEND_API_KEY
+        sync: false  # Will be set manually
+      - key: DEFAULT_FROM_EMAIL
+        sync: false  # Will be set manually
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: "*"
