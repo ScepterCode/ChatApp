@@ -62,6 +62,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.websocket_config',
             ],
         },
     },
@@ -113,6 +114,9 @@ ASGI_APPLICATION = 'core.asgi.application'
 # WebSocket Configuration for Render
 WEBSOCKET_ENABLED = config('WEBSOCKET_ENABLED', default=True, cast=bool)
 ALLOWED_WEBSOCKET_ORIGINS = config('ALLOWED_WEBSOCKET_ORIGINS', default='').split(',')
+
+# WebSocket service URL (separate Fly.io service)
+WEBSOCKET_SERVICE_URL = config('WEBSOCKET_SERVICE_URL', default='wss://chatapp-websockets.fly.dev')
 
 # Add WebSocket origins to ALLOWED_HOSTS if specified
 if ALLOWED_WEBSOCKET_ORIGINS and ALLOWED_WEBSOCKET_ORIGINS[0]:

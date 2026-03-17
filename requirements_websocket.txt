@@ -1,0 +1,23 @@
+# Minimal requirements for WebSocket-only service on Fly.io
+# Core Django (minimal)
+django==5.1.7
+djangorestframework==3.16.1
+djangorestframework-simplejwt==5.5.1
+
+# WebSocket Support
+channels==4.3.2
+channels-redis==4.3.0
+daphne==4.2.1
+
+# Database
+psycopg2-binary==2.9.11
+dj-database-url==3.1.2
+
+# Redis
+redis==5.2.0
+
+# CORS for cross-origin WebSocket connections
+django-cors-headers==4.9.0
+
+# Configuration
+python-decouple==3.8

@@ -444,15 +444,15 @@
         });
 
         function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/chat/${groupId}/?token=${user.token}`;
+            // Use separate WebSocket service on Fly.io
+            const wsUrl = `{{ WEBSOCKET_SERVICE_URL }}/ws/chat/${groupId}/?token=${user.token}`;
             
             chatSocket = new WebSocket(wsUrl);
             
             chatSocket.onopen = function(e) {
-                console.log('WebSocket connected');
+                console.log('WebSocket connected to Fly.io service');
                 updateConnectionStatus('connected');
-                showSuccess('Connected to real-time chat');
+                showSuccess('Connected to live chat');
             };
             
             chatSocket.onmessage = function(e) {

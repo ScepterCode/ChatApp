@@ -162,8 +162,8 @@
                 return;
             }
 
-            const wsUrl = `wss://${window.location.host}/ws/chat/${roomId}/?token=${encodeURIComponent(token)}`;
-            log(`Connecting to: ${wsUrl}`, 'info');
+            const wsUrl = `{{ WEBSOCKET_SERVICE_URL }}/ws/chat/${roomId}/?token=${encodeURIComponent(token)}`;
+            log(`Connecting to Fly.io WebSocket service: ${wsUrl}`, 'info');
             
             updateStatus('connecting', 'Connecting...');
 
