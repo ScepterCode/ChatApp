@@ -36,6 +36,7 @@ urlpatterns = [
     path('chat/', TemplateView.as_view(template_name='chat.html'), name='chat'),
     path('groups/', TemplateView.as_view(template_name='groups.html'), name='groups'),
     path('group-chat/', TemplateView.as_view(template_name='group-chat.html'), name='group-chat'),
+    path('group-chat-polling/', TemplateView.as_view(template_name='group-chat-polling.html'), name='group-chat-polling'),
     path('websocket-test/', TemplateView.as_view(template_name='websocket-test.html'), name='websocket-test'),
     path('websocket-debug/', TemplateView.as_view(template_name='websocket-debug.html'), name='websocket-debug'),
 ]

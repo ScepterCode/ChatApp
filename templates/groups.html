@@ -234,6 +234,15 @@
             background: #5568d3;
         }
 
+        .btn-polling {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-polling:hover {
+            background: #218838;
+        }
+
         .btn-join {
             background: #28a745;
             color: white;
@@ -571,8 +580,11 @@
                                 ${group.is_private ? ' • 🔒 Private' : ' • 🌐 Public'}
                             </div>
                             <div class="group-actions">
-                                <button class="btn-action btn-open" onclick="openGroup(${group.id}, '${escapeHTML(group.name)}')">
-                                    Open Chat
+                                <button class="btn-action btn-open" onclick="openGroup(${group.id}, '${escapeHTML(group.name)}', 'websocket')">
+                                    💬 WebSocket
+                                </button>
+                                <button class="btn-action btn-polling" onclick="openGroup(${group.id}, '${escapeHTML(group.name)}', 'polling')">
+                                    🔄 Polling
                                 </button>
                                 ${group.admin === user.id ? 
                                     `<button class="btn-action btn-admin" onclick="manageGroup(${group.id})">
@@ -817,8 +829,12 @@
             }
         }
 
-        function openGroup(groupId, groupName) {
-            window.location.href = `/group-chat/?id=${groupId}&name=${encodeURIComponent(groupName)}`;
+        function openGroup(groupId, groupName, mode = 'websocket') {
+            if (mode === 'polling') {
+                window.location.href = `/group-chat-polling/?id=${groupId}&name=${encodeURIComponent(groupName)}`;
+            } else {
+                window.location.href = `/group-chat/?id=${groupId}&name=${encodeURIComponent(groupName)}`;
+            }
         }
 
         function manageGroup(groupId) {

@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat (Polling) - ChatApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .connection-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-polling {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .message.own {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .message-content {
+            max-width: 70%;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.own .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-sender {
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            color: #666;
+        }
+
+        .message.own .message-sender {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .message-text {
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .message.own .message-time {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .typing-indicator {
+            padding: 10px 20px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9rem;
+            background: #e9ecef;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .system-message {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin: 10px 0;
+            padding: 8px;
+            background: #e9ecef;
+            border-radius: 10px;
+        }
+
+        .online-users {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div>
+                <div class="chat-title" id="groupName">Loading...</div>
+                <div style="font-size: 0.9rem; opacity: 0.8;" id="memberCount">0 members</div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="connection-status status-polling" id="connectionStatus">
+                    🔄 Polling Active
+                </div>
+                <button class="back-button" onclick="goBack()">← Back</button>
+            </div>
+        </div>
+
+        <div class="online-users" id="onlineUsers">
+            Loading online users...
+        </div>
+
+        <div class="chat-messages" id="messagesContainer">
+            <div class="system-message">
+                💬 Welcome to polling-based chat! Messages update every 2 seconds.
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            Someone is typing...
+        </div>
+
+        <div class="chat-input">
+            <input type="text" class="input-field" id="messageInput" 
+                   placeholder="Type your message..." maxlength="500">
+            <button class="send-button" id="sendButton" onclick="sendMessage()">
+                Send
+            </button>
+        </div>
+    </div>
+
+    <script src="/static/js/utils.js"></script>
+    <script>
+        // Global variables
+        let groupId = null;
+        let groupName = null;
+        let user = null;
+        let lastMessageTimestamp = null;
+        let pollingInterval = null;
+        let typingTimeout = null;
+        let isTyping = false;
+
+        // API configuration
+        const API_URL = `${window.location.protocol}//${window.location.host}/api`;
+
+        // Initialize chat
+        window.addEventListener('load', async () => {
+            requireAuth();
+            user = getCurrentUser();
+            
+            // Get group info from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            groupId = urlParams.get('id');
+            groupName = urlParams.get('name') || 'Group Chat';
+            
+            if (!groupId) {
+                showError('No group ID provided');
+                return;
+            }
+
+            // Update UI
+            document.getElementById('groupName').textContent = groupName;
+            
+            // Start polling
+            startPolling();
+            
+            // Load initial messages
+            await loadMessages();
+            
+            // Load online users
+            await loadOnlineUsers();
+            
+            // Set up input handlers
+            setupInputHandlers();
+            
+            console.log('✅ Polling-based chat initialized');
+        });
+
+        function startPolling() {
+            // Poll for new messages every 2 seconds
+            pollingInterval = setInterval(async () => {
+                await loadMessages(true); // incremental
+                await loadTypingIndicators();
+                await updatePresence();
+            }, 2000);
+            
+            // Poll for online users every 10 seconds
+            setInterval(loadOnlineUsers, 10000);
+            
+            console.log('🔄 Polling started');
+        }
+
+        async function loadMessages(incremental = false) {
+            try {
+                const params = new URLSearchParams({
+                    room_id: groupId,
+                    limit: incremental ? '10' : '50'
+                });
+                
+                if (incremental && lastMessageTimestamp) {
+                    params.append('since', lastMessageTimestamp);
+                }
+                
+                const response = await fetch(`${API_URL}/chat/polling/get_messages/?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.messages.length > 0) {
+                    if (!incremental) {
+                        // Clear existing messages for initial load
+                        const container = document.getElementById('messagesContainer');
+                        container.innerHTML = '<div class="system-message">💬 Welcome to polling-based chat!</div>';
+                    }
+                    
+                    // Add new messages
+                    data.messages.forEach(message => {
+                        addMessageToUI(message);
+                    });
+                    
+                    // Update timestamp for next incremental load
+                    lastMessageTimestamp = data.timestamp;
+                    
+                    // Scroll to bottom if new messages
+                    if (incremental) {
+                        scrollToBottom();
+                    }
+                }
+                
+                // Update connection status
+                updateConnectionStatus('polling', '🔄 Polling Active');
+                
+            } catch (error) {
+                console.error('❌ Error loading messages:', error);
+                updateConnectionStatus('error', '❌ Connection Error');
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (!content) return;
+            
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch(`${API_URL}/chat/polling/send_message/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        room_id: groupId,
+                        content: content
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Clear input
+                    input.value = '';
+                    
+                    // Add message to UI immediately
+                    addMessageToUI(data.message);
+                    scrollToBottom();
+                    
+                    // Stop typing indicator
+                    await markTyping(false);
+                } else {
+                    throw new Error(data.error || 'Failed to send message');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error sending message:', error);
+                showError('Failed to send message');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send';
+            }
+        }
+
+        function addMessageToUI(message) {
+            const container = document.getElementById('messagesContainer');
+            const isOwn = message.sender.id === user.id;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+            messageDiv.innerHTML = `
+                <div class="message-avatar">
+                    ${message.sender.username.charAt(0).toUpperCase()}
+                </div>
+                <div class="message-content">
+                    ${!isOwn ? `<div class="message-sender">${message.sender.username}</div>` : ''}
+                    <div class="message-text">${escapeHtml(message.content)}</div>
+                    <div class="message-time">${formatTime(message.timestamp)}</div>
+                </div>
+            `;
+            
+            container.appendChild(messageDiv);
+        }
+
+        async function loadOnlineUsers() {
+            try {
+                const response = await fetch(`${API_URL}/chat/polling/get_online_users/?room_id=${groupId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const onlineDiv = document.getElementById('onlineUsers');
+                        const count = data.online_users.length;
+                        const names = data.online_users.map(u => u.username).join(', ');
+                        onlineDiv.textContent = `🟢 ${count} online: ${names || 'None'}`;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error loading online users:', error);
+            }
+        }
+
+        async function loadTypingIndicators() {
+            try {
+                const response = await fetch(`${API_URL}/chat/polling/get_typing/?room_id=${groupId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const typingDiv = document.getElementById('typingIndicator');
+                        if (data.typing.length > 0) {
+                            const names = data.typing.map(t => t.username).join(', ');
+                            typingDiv.textContent = `${names} ${data.typing.length === 1 ? 'is' : 'are'} typing...`;
+                            typingDiv.style.display = 'block';
+                        } else {
+                            typingDiv.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error loading typing indicators:', error);
+            }
+        }
+
+        async function markTyping(typing) {
+            try {
+                await fetch(`${API_URL}/chat/polling/mark_typing/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        room_id: groupId,
+                        is_typing: typing
+                    })
+                });
+            } catch (error) {
+                console.error('❌ Error updating typing status:', error);
+            }
+        }
+
+        async function updatePresence() {
+            try {
+                await fetch(`${API_URL}/chat/polling/update_presence/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+            } catch (error) {
+                console.error('❌ Error updating presence:', error);
+            }
+        }
+
+        function setupInputHandlers() {
+            const input = document.getElementById('messageInput');
+            
+            // Send on Enter
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // Typing indicators
+            input.addEventListener('input', () => {
+                if (!isTyping) {
+                    isTyping = true;
+                    markTyping(true);
+                }
+                
+                // Clear existing timeout
+                if (typingTimeout) {
+                    clearTimeout(typingTimeout);
+                }
+                
+                // Set timeout to stop typing
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                    markTyping(false);
+                }, 3000);
+            });
+        }
+
+        function updateConnectionStatus(status, text) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = `connection-status status-${status}`;
+            statusDiv.textContent = text;
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function formatTime(timestamp) {
+            return new Date(timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            alert(`Error: ${message}`);
+        }
+
+        function goBack() {
+            window.location.href = '/groups/';
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            if (typingTimeout) {
+                clearTimeout(typingTimeout);
+            }
+            // Mark as not typing
+            if (isTyping) {
+                markTyping(false);
+            }
+        });
+    </script>
+</body>
+</html>

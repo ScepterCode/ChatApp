@@ -4,6 +4,7 @@ from .views import (
     RoomViewSet, MembershipViewSet, MessageViewSet, DirectMessageViewSet,
     UserPresenceViewSet, TypingIndicatorViewSet
 )
+from .views_polling import PollingChatViewSet, poll_messages
 
 router = DefaultRouter()
 router.register(r'rooms', RoomViewSet, basename='room')
@@ -13,6 +14,11 @@ router.register(r'direct-messages', DirectMessageViewSet, basename='direct-messa
 router.register(r'presence', UserPresenceViewSet, basename='presence')
 router.register(r'typing', TypingIndicatorViewSet, basename='typing')
 
+# Polling-based chat (no WebSockets)
+router.register(r'polling', PollingChatViewSet, basename='polling-chat')
+
 urlpatterns = [
     path('', include(router.urls)),
+    # Simple polling endpoint
+    path('poll/', poll_messages, name='poll-messages'),
 ]
