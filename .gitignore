@@ -102,6 +102,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# AI folder and models (causing memory issues on Render)
+ai/
+
 # AI Models cache (HuggingFace)
 .cache/
 models/

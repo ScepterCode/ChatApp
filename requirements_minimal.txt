@@ -1,4 +1,4 @@
-# Absolute minimal requirements for Render
+# Absolute minimal requirements for Render (NO AI packages)
 django==5.1.7
 djangorestframework==3.16.1
 djangorestframework-simplejwt==5.5.1
