@@ -12,8 +12,6 @@ services:
         value: 3.11.0
       - key: RENDER
         value: true
-      - key: ALLOWED_HOSTS
-        value: "localhost,127.0.0.1,testserver,chatapp-1-kctm.onrender.com"
       - key: DATABASE_URL
         sync: false  # Will be set manually to Neon URL
       - key: REDIS_URL
