@@ -2,7 +2,13 @@
 from celery import shared_task
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .sentiment import SentimentAnalyzer
+
+try:
+    from .sentiment import SentimentAnalyzer
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
+    SentimentAnalyzer = None
 
 
 @shared_task(bind=True, max_retries=3)
