@@ -60,10 +60,22 @@ class PollingChatViewSet(viewsets.ViewSet):
             membership.last_read_at = timezone.now()
             membership.save()
             
-            serializer = MessageSerializer(message)
+            # Format message data for frontend compatibility
+            message_data = {
+                'id': str(message.id),
+                'content': message.content,
+                'sender': {
+                    'id': str(message.sender.id),
+                    'username': message.sender.username
+                },
+                'timestamp': message.timestamp.isoformat(),
+                'sentiment': message.sentiment,
+                'is_flagged': message.is_flagged
+            }
+            
             return Response({
                 'success': True,
-                'message': serializer.data
+                'message': message_data
             })
             
         except Membership.DoesNotExist:
@@ -102,11 +114,25 @@ class PollingChatViewSet(viewsets.ViewSet):
             messages = messages.order_by('-timestamp')[:limit]
             messages = list(reversed(messages))  # Oldest first
             
-            serializer = MessageSerializer(messages, many=True)
+            # Format messages for frontend compatibility
+            message_data = [
+                {
+                    'id': str(m.id),
+                    'content': m.content,
+                    'sender': {
+                        'id': str(m.sender.id),
+                        'username': m.sender.username
+                    },
+                    'timestamp': m.timestamp.isoformat(),
+                    'sentiment': m.sentiment,
+                    'is_flagged': m.is_flagged
+                }
+                for m in messages
+            ]
             
             return Response({
                 'success': True,
-                'messages': serializer.data,
+                'messages': message_data,
                 'room_id': room_id,
                 'timestamp': timezone.now().isoformat(),
                 'has_more': len(messages) == limit
@@ -206,12 +232,13 @@ class PollingChatViewSet(viewsets.ViewSet):
             cutoff = timezone.now() - timedelta(minutes=5)
             online_members = Membership.objects.filter(
                 room_id=room_id
-            ).select_related('user').prefetch_related('user__userpresence_set')
+            ).select_related('user')
             
             online_list = []
             for membership in online_members:
                 try:
-                    presence = membership.user.userpresence_set.first()
+                    # Check if user has recent presence
+                    presence = UserPresence.objects.filter(user=membership.user).first()
                     if presence and presence.last_seen >= cutoff:
                         online_list.append({
                             'user_id': membership.user.id,
@@ -219,8 +246,22 @@ class PollingChatViewSet(viewsets.ViewSet):
                             'is_online': presence.is_online,
                             'last_seen': presence.last_seen.isoformat()
                         })
-                except:
-                    pass  # User has no presence record
+                    else:
+                        # Include all members but mark as offline if no recent presence
+                        online_list.append({
+                            'user_id': membership.user.id,
+                            'username': membership.user.username,
+                            'is_online': False,
+                            'last_seen': None
+                        })
+                except Exception as e:
+                    # If there's any error, still include the user as offline
+                    online_list.append({
+                        'user_id': membership.user.id,
+                        'username': membership.user.username,
+                        'is_online': False,
+                        'last_seen': None
+                    })
             
             return Response({
                 'success': True,
