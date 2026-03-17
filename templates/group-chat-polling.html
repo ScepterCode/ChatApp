@@ -229,7 +229,7 @@
             </div>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <div class="connection-status status-polling" id="connectionStatus">
-                    🔄 Polling Active
+                    🟢 Auto-Updating
                 </div>
                 <button class="back-button" onclick="goBack()">← Back</button>
             </div>
@@ -290,7 +290,7 @@
             // Update UI
             document.getElementById('groupName').textContent = groupName;
             
-            // Start polling
+            // Start polling immediately and automatically
             startPolling();
             
             // Load initial messages
@@ -302,28 +302,36 @@
             // Set up input handlers
             setupInputHandlers();
             
-            console.log('✅ Polling-based chat initialized');
+            // Auto-focus message input for better UX
+            document.getElementById('messageInput').focus();
+            
+            console.log('✅ Fully automatic polling chat initialized');
         });
 
         function startPolling() {
-            // Poll for new messages every 2 seconds
+            // Poll for new messages every 1 second for more responsive feel
             pollingInterval = setInterval(async () => {
                 await loadMessages(true); // incremental
                 await loadTypingIndicators();
                 await updatePresence();
-            }, 2000);
+            }, 1000);
             
-            // Poll for online users every 10 seconds
+            // Poll for online users every 10 seconds (more frequent)
             setInterval(loadOnlineUsers, 10000);
             
-            console.log('🔄 Polling started');
+            // Keep connection alive - poll every 15 seconds even if no activity
+            setInterval(() => {
+                updateConnectionStatus('polling', '🟢 Auto-Updating');
+            }, 15000);
+            
+            console.log('🔄 Fully automatic polling started (1s intervals)');
         }
 
         async function loadMessages(incremental = false) {
             try {
                 const params = new URLSearchParams({
                     room_id: groupId,
-                    limit: incremental ? '10' : '50'
+                    limit: incremental ? '20' : '50'
                 });
                 
                 if (incremental && lastMessageTimestamp) {
@@ -347,7 +355,7 @@
                     if (!incremental) {
                         // Clear existing messages for initial load
                         const container = document.getElementById('messagesContainer');
-                        container.innerHTML = '<div class="system-message">💬 Welcome to polling-based chat!</div>';
+                        container.innerHTML = '<div class="system-message">💬 Fully automatic chat! Messages update every second - no refresh needed.</div>';
                     }
                     
                     // Add new messages
@@ -359,17 +367,32 @@
                     lastMessageTimestamp = data.timestamp;
                     
                     // Scroll to bottom if new messages
-                    if (incremental) {
+                    if (incremental && data.messages.length > 0) {
                         scrollToBottom();
                     }
                 }
                 
                 // Update connection status
-                updateConnectionStatus('polling', '🔄 Polling Active');
+                updateConnectionStatus('polling', '🟢 Auto-Updating');
+                
+                // Reset error count on success
+                window.errorCount = 0;
                 
             } catch (error) {
                 console.error('❌ Error loading messages:', error);
-                updateConnectionStatus('error', '❌ Connection Error');
+                
+                // Increment error count
+                window.errorCount = (window.errorCount || 0) + 1;
+                
+                if (window.errorCount < 3) {
+                    updateConnectionStatus('polling', '🟡 Reconnecting...');
+                    // Retry after 2 seconds
+                    setTimeout(() => loadMessages(incremental), 2000);
+                } else {
+                    updateConnectionStatus('error', '❌ Connection Issues');
+                    // Reset error count after 30 seconds
+                    setTimeout(() => { window.errorCount = 0; }, 30000);
+                }
             }
         }
 
@@ -598,6 +621,34 @@
             // Mark as not typing
             if (isTyping) {
                 markTyping(false);
+            }
+        });
+
+        // Pause/resume polling based on page visibility (saves bandwidth)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Page is hidden, slow down polling to every 5 seconds
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = setInterval(async () => {
+                        await loadMessages(true);
+                        await updatePresence();
+                    }, 5000);
+                    console.log('🔄 Polling slowed down (page hidden)');
+                }
+            } else {
+                // Page is visible, resume normal polling
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = setInterval(async () => {
+                        await loadMessages(true);
+                        await loadTypingIndicators();
+                        await updatePresence();
+                    }, 1000);
+                    console.log('🔄 Polling resumed (page visible)');
+                }
+                // Load messages immediately when page becomes visible
+                loadMessages(true);
             }
         });
     </script>
