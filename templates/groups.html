@@ -484,7 +484,7 @@
             requireAuth();
             
             // Initialize API client
-            api = new ChatAPIClient(`http://${window.location.host}/api`, user.token);
+            api = new ChatAPIClient(`${window.location.protocol}//${window.location.host}/api`, user.token);
             
             await loadMyGroups();
             await checkAdminStatus();
