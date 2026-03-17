@@ -110,6 +110,17 @@ STATICFILES_DIRS = [
 # Channels
 ASGI_APPLICATION = 'core.asgi.application'
 
+# WebSocket Configuration for Render
+WEBSOCKET_ENABLED = config('WEBSOCKET_ENABLED', default=True, cast=bool)
+ALLOWED_WEBSOCKET_ORIGINS = config('ALLOWED_WEBSOCKET_ORIGINS', default='').split(',')
+
+# Add WebSocket origins to ALLOWED_HOSTS if specified
+if ALLOWED_WEBSOCKET_ORIGINS and ALLOWED_WEBSOCKET_ORIGINS[0]:
+    for origin in ALLOWED_WEBSOCKET_ORIGINS:
+        host = origin.replace('https://', '').replace('http://', '')
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
+
 # Redis Configuration (Upstash with connection pooling)
 REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
@@ -122,6 +133,10 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
             'hosts': [REDIS_URL],
+            'capacity': 1500,  # Maximum messages to store
+            'expiry': 60,      # Message expiry in seconds
+            'group_expiry': 86400,  # Group expiry in seconds (24 hours)
+            'symmetric_encryption_keys': [SECRET_KEY],
         },
     },
 }

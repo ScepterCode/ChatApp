@@ -23,7 +23,7 @@ def get_user_from_token(token_string):
         return AnonymousUser()
 
 class JWTAuthMiddleware(BaseMiddleware):
-    """Simplified JWT authentication middleware"""
+    """JWT authentication middleware for WebSockets"""
     
     async def __call__(self, scope, receive, send):
         # Get token from query string
@@ -32,9 +32,16 @@ class JWTAuthMiddleware(BaseMiddleware):
         
         if 'token' in query_params:
             token = query_params['token'][0]
-            scope['user'] = await get_user_from_token(token)
+            user = await get_user_from_token(token)
+            scope['user'] = user
+            
+            # Log authentication attempts
+            if user.is_authenticated:
+                logger.info(f"WebSocket authenticated user: {user.username}")
+            else:
+                logger.warning("WebSocket authentication failed: invalid token")
         else:
-            # Allow connections without tokens for now
+            logger.warning("WebSocket connection without token")
             scope['user'] = AnonymousUser()
         
         return await super().__call__(scope, receive, send)

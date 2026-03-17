@@ -10,11 +10,21 @@ def health_check(request):
     """Health check endpoint for Render deployment"""
     return JsonResponse({'status': 'healthy', 'service': 'chatapp'})
 
+def websocket_test(request):
+    """WebSocket connection test endpoint"""
+    return JsonResponse({
+        'websocket_url': f"wss://{request.get_host()}/ws/chat/test/",
+        'status': 'ready',
+        'redis_configured': bool(settings.REDIS_URL),
+        'channels_configured': 'channels_redis' in str(settings.CHANNEL_LAYERS),
+    })
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
     path('api/chat/', include('chat.urls')),
     path('health/', health_check, name='health-check'),
+    path('ws-test/', websocket_test, name='websocket-test'),
     
     # Frontend pages
     path('', TemplateView.as_view(template_name='index.html'), name='index'),

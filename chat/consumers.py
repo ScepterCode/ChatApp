@@ -50,22 +50,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         print(f"🔌 WebSocket connect attempt - Room: {self.room_id}, User: {self.user}")
         
-        # For testing: Accept all connections
-        await self.channel_layer.group_add(self.room_group, self.channel_name)
-        await self.accept()
+        # Check if user is authenticated
+        if not self.user.is_authenticated:
+            print(f"❌ WebSocket rejected: User not authenticated")
+            await self.close(code=4001)  # Custom close code for auth failure
+            return
         
-        print(f"🎉 WebSocket connection accepted for room {self.room_id}")
-        
-        # Send welcome message
-        await self.send(text_data=json.dumps({
-            'type': 'system_message',
-            'message': f'Connected to room {self.room_id}',
-            'timestamp': timezone.now().isoformat()
-        }))
+        try:
+            # Add to channel group
+            await self.channel_layer.group_add(self.room_group, self.channel_name)
+            await self.accept()
+            
+            # Mark user as online
+            await self.mark_online(True)
+            
+            print(f"🎉 WebSocket connection accepted for room {self.room_id}")
+            
+            # Send welcome message
+            await self.send(text_data=json.dumps({
+                'type': 'system_message',
+                'message': f'Connected to live chat',
+                'timestamp': timezone.now().isoformat()
+            }))
+            
+        except Exception as e:
+            print(f"❌ WebSocket connection error: {e}")
+            await self.close(code=4000)  # Custom close code for server error
     
     async def disconnect(self, code):
-        await self.channel_layer.group_discard(self.room_group, self.channel_name)
-        await self.mark_online(False)
+        print(f"🔌 WebSocket disconnect - Room: {self.room_id}, Code: {code}")
+        try:
+            await self.channel_layer.group_discard(self.room_group, self.channel_name)
+            if hasattr(self, 'user') and self.user.is_authenticated:
+                await self.mark_online(False)
+        except Exception as e:
+            print(f"❌ WebSocket disconnect error: {e}")
     
     async def receive(self, text_data):
         data    = json.loads(text_data)

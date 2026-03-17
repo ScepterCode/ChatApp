@@ -6,7 +6,7 @@ services:
       pip install -r requirements_minimal.txt
       python manage.py collectstatic --no-input
       python manage.py migrate
-    startCommand: daphne -p $PORT -b 0.0.0.0 core.asgi:application --verbosity 2
+    startCommand: daphne -p $PORT -b 0.0.0.0 core.asgi:application --verbosity 2 --websocket_timeout 86400 --websocket_connect_timeout 5
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -24,3 +24,7 @@ services:
         generateValue: true
       - key: DEBUG
         value: False
+      - key: WEBSOCKET_ENABLED
+        value: true
+      - key: ALLOWED_WEBSOCKET_ORIGINS
+        value: "https://chatapp-1-kctm.onrender.com"
