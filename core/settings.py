@@ -14,7 +14,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', 'chatapp-1-kctm.onrender.com', '.onrender.com']
+ALLOWED_HOSTS = ['*']  # Allow all hosts for Render deployment
 
 # Application definition
 INSTALLED_APPS = [
