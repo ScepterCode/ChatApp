@@ -184,6 +184,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://chatapp-1-kctm.onrender.com",
 ]
 
+# Allow all origins temporarily for debugging
+CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOW_CREDENTIALS = True
 
 # Email Configuration (Console backend for development)
