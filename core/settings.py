@@ -19,7 +19,6 @@ ALLOWED_HOSTS = [
     '127.0.0.1', 
     'testserver',
     'chatapp-1-kctm.onrender.com',
-    '.onrender.com'  # Allow all Render subdomains
 ]
 
 # Application definition

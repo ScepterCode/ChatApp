@@ -3,12 +3,18 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
 import os
+
+def health_check(request):
+    """Health check endpoint for Render deployment"""
+    return JsonResponse({'status': 'healthy', 'service': 'chatapp'})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
     path('api/chat/', include('chat.urls')),
+    path('health/', health_check, name='health-check'),
     
     # Frontend pages
     path('', TemplateView.as_view(template_name='index.html'), name='index'),
