@@ -354,45 +354,40 @@
         </div>
     </div>
 
+    <script src="/static/js/utils.js"></script>
     <script>
-        const API_URL = 'http://localhost:8000/api';
-        let accessToken = localStorage.getItem('accessToken');
-        let userId = localStorage.getItem('userId');
-        let username = localStorage.getItem('username');
+        const API_URL = `${window.location.protocol}//${window.location.host}/api`;
         let currentConversationId = null;
+        const user = getCurrentUser();
 
         // Check authentication
-        window.addEventListener('load', () => {
-            if (!accessToken) {
-                window.location.href = '/login/';
-                return;
-            }
-            initializeChat();
+        window.addEventListener('load', async () => {
+            requireAuth();
+            await initializeChat();
         });
 
         async function initializeChat() {
-            document.getElementById('currentUsername').textContent = `@${username}`;
+            document.getElementById('currentUsername').textContent = `@${user.username}`;
             await loadConversations();
         }
 
         async function loadConversations() {
             try {
                 const res = await fetch(`${API_URL}/chat/direct-messages/conversations/`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                    headers: { 'Authorization': `Bearer ${user.token}` }
                 });
-
-                if (res.status === 401) {
-                    localStorage.clear();
-                    window.location.href = '/login/';
-                    return;
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
                 }
-
-                const data = await res.json();
-                displayConversations(data);
+                
+                const conversations = await res.json();
+                displayConversations(conversations);
             } catch (error) {
                 console.error('Error loading conversations:', error);
                 document.getElementById('conversationsList').innerHTML = 
                     '<div class="loading">Error loading conversations</div>';
+                showError('Failed to load conversations');
             }
         }
 
@@ -405,17 +400,23 @@
             }
 
             list.innerHTML = conversations.map(conv => {
-                const otherUser = conv.other_user;
-                const preview = conv.last_message.substring(0, 30) + (conv.last_message.length > 30 ? '...' : '');
-                
-                return `
-                    <div class="conversation-item" onclick="openConversation(${otherUser.id}, '${otherUser.username}')">
-                        <div class="conversation-info">
-                            <div class="conversation-name">${otherUser.username}</div>
-                            <div class="conversation-preview">${preview}</div>
+                try {
+                    const otherUser = safeGet(conv, 'other_user', {});
+                    const lastMessage = safeGet(conv, 'last_message', '');
+                    const preview = truncate(lastMessage, 30);
+                    
+                    return `
+                        <div class="conversation-item" onclick="openConversation(${otherUser.id}, '${escapeHTML(otherUser.username)}')">
+                            <div class="conversation-info">
+                                <div class="conversation-name">${escapeHTML(otherUser.username)}</div>
+                                <div class="conversation-preview">${escapeHTML(preview)}</div>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } catch (e) {
+                    console.error('Error rendering conversation:', conv, e);
+                    return '';
+                }
             }).join('');
         }
 
@@ -424,20 +425,18 @@
             
             try {
                 const res = await fetch(`${API_URL}/chat/direct-messages/with_user/?user_id=${recipientId}`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                    headers: { 'Authorization': `Bearer ${user.token}` }
                 });
-
-                if (res.status === 401) {
-                    localStorage.clear();
-                    window.location.href = '/login/';
-                    return;
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
                 }
-
-                const data = await res.json();
-                const messages = data.results || data;
+                
+                const messages = await res.json();
                 displayChat(recipientUsername, messages, recipientId);
             } catch (error) {
                 console.error('Error loading conversation:', error);
+                showError('Failed to load conversation');
             }
         }
 
@@ -445,23 +444,30 @@
             const chatContent = document.getElementById('chatContent');
             
             const messagesHtml = messages.map(msg => {
-                const isOwn = msg.sender_id === parseInt(userId);
-                const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                return `
-                    <div class="message ${isOwn ? 'own' : 'other'}">
-                        ${!isOwn ? `<div class="message-sender">${msg.sender_username}</div>` : ''}
-                        <div class="message-bubble">
-                            ${msg.content}
-                            <div class="message-time">${time}</div>
+                try {
+                    const senderId = safeGet(msg, 'sender_id', safeGet(msg, 'sender.id'));
+                    const senderUsername = safeGet(msg, 'sender_username', safeGet(msg, 'sender.username', 'Unknown'));
+                    const isOwn = senderId === user.id;
+                    const time = formatTime(msg.timestamp);
+                    
+                    return `
+                        <div class="message ${isOwn ? 'own' : 'other'}">
+                            ${!isOwn ? `<div class="message-sender">${escapeHTML(senderUsername)}</div>` : ''}
+                            <div class="message-bubble">
+                                ${escapeHTML(msg.content)}
+                                <div class="message-time">${time}</div>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } catch (e) {
+                    console.error('Error rendering message:', msg, e);
+                    return '';
+                }
             }).join('');
 
             chatContent.innerHTML = `
                 <div class="chat-header">
-                    <h3>${recipientUsername}</h3>
+                    <h3>${escapeHTML(recipientUsername)}</h3>
                 </div>
                 <div class="chat-messages" id="messagesContainer">
                     ${messagesHtml || '<div class="empty-state"><p>No messages yet. Start the conversation!</p></div>'}
@@ -489,10 +495,12 @@
             if (!content) return;
 
             try {
+                input.disabled = true;
+                
                 const res = await fetch(`${API_URL}/chat/direct-messages/`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${accessToken}`,
+                        'Authorization': `Bearer ${user.token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -500,25 +508,25 @@
                         content: content
                     })
                 });
-
-                if (res.ok) {
-                    input.value = '';
-                    // Reload conversation
-                    const username = document.querySelector('.chat-header h3').textContent;
-                    await openConversation(recipientId, username);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
                 }
+                
+                input.value = '';
+                // Reload conversation
+                const username = document.querySelector('.chat-header h3').textContent;
+                await openConversation(recipientId, username);
             } catch (error) {
                 console.error('Error sending message:', error);
+                showError('Failed to send message');
+            } finally {
+                input.disabled = false;
             }
         }
 
         function goBack() {
             window.location.href = '/dashboard/';
-        }
-
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/';
         }
     </script>
 </body>
