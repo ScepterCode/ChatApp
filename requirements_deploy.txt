@@ -1,0 +1,31 @@
+# ULTRA MINIMAL REQUIREMENTS FOR RENDER DEPLOYMENT
+# Only essential packages - NO AI, NO ML, NO HEAVY DEPENDENCIES
+
+# Core Django
+django==5.1.7
+djangorestframework==3.16.1
+djangorestframework-simplejwt==5.5.1
+
+# Authentication
+dj-rest-auth==7.1.1
+django-allauth==65.15.0
+
+# CORS and Database
+django-cors-headers==4.9.0
+dj-database-url==3.1.2
+psycopg2-binary==2.9.11
+
+# WebSocket (minimal)
+channels==4.3.2
+channels-redis==4.3.0
+daphne==4.2.1
+
+# Redis
+redis==5.2.0
+
+# Background Tasks (minimal)
+celery==5.6.2
+
+# Essential utilities only
+python-decouple==3.8
+resend==2.24.0
