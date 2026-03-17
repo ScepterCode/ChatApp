@@ -14,7 +14,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', 'chatapp-1-kctm.onrender.com', '.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
@@ -157,6 +157,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://chatapp-1-kctm.onrender.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
