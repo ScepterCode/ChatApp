@@ -3,10 +3,10 @@ services:
     name: chatapp
     env: python
     buildCommand: |
-      pip install -r requirements_deploy.txt
+      pip install -r requirements_bare.txt
       python manage.py collectstatic --no-input
       python manage.py migrate
-    startCommand: daphne -p $PORT -b 0.0.0.0 core.asgi:application
+    startCommand: daphne -p $PORT -b 0.0.0.0 core.asgi:application --verbosity 2
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

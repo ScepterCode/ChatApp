@@ -30,11 +30,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'chat',
+    # AI app completely removed to avoid memory issues on Render
 ]
-
-# Add AI app only if not on Render (to avoid memory issues)
-if not config('RENDER', default=False, cast=bool):
-    INSTALLED_APPS.append('ai')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

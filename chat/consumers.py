@@ -6,44 +6,36 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
 
-# Optional AI imports - graceful fallback if not available
-try:
-    from ai.toxicity import ToxicityAnalyzer
-    from ai.sentiment import SentimentAnalyzer
-    AI_AVAILABLE = True
-except ImportError:
-    # AI modules not available - create fallback classes
-    AI_AVAILABLE = False
-    
-    class ToxicityAnalyzer:
-        @classmethod
-        def analyze(cls, text: str) -> dict:
-            # Simple keyword-based fallback
-            toxic_keywords = ['spam', 'hate', 'abuse', 'toxic']
-            has_toxic = any(word in text.lower() for word in toxic_keywords)
-            return {
-                'toxicity_score': 0.9 if has_toxic else 0.1,
-                'is_blocked': has_toxic,
-                'is_flagged': False,
-            }
-    
-    class SentimentAnalyzer:
-        @classmethod
-        def analyze(cls, text: str) -> dict:
-            # Simple keyword-based fallback
-            positive_words = ['good', 'great', 'love', 'awesome']
-            negative_words = ['bad', 'hate', 'terrible', 'awful']
-            text_lower = text.lower()
-            
-            pos_count = sum(1 for word in positive_words if word in text_lower)
-            neg_count = sum(1 for word in negative_words if word in text_lower)
-            
-            if pos_count > neg_count:
-                return {'sentiment': 'positive', 'sentiment_score': 0.7}
-            elif neg_count > pos_count:
-                return {'sentiment': 'negative', 'sentiment_score': 0.7}
-            else:
-                return {'sentiment': 'neutral', 'sentiment_score': 0.6}
+# Simple fallback classes for content moderation (no AI dependencies)
+class ToxicityAnalyzer:
+    @classmethod
+    def analyze(cls, text: str) -> dict:
+        # Simple keyword-based fallback
+        toxic_keywords = ['spam', 'hate', 'abuse', 'toxic']
+        has_toxic = any(word in text.lower() for word in toxic_keywords)
+        return {
+            'toxicity_score': 0.9 if has_toxic else 0.1,
+            'is_blocked': has_toxic,
+            'is_flagged': False,
+        }
+
+class SentimentAnalyzer:
+    @classmethod
+    def analyze(cls, text: str) -> dict:
+        # Simple keyword-based fallback
+        positive_words = ['good', 'great', 'love', 'awesome']
+        negative_words = ['bad', 'hate', 'terrible', 'awful']
+        text_lower = text.lower()
+        
+        pos_count = sum(1 for word in positive_words if word in text_lower)
+        neg_count = sum(1 for word in negative_words if word in text_lower)
+        
+        if pos_count > neg_count:
+            return {'sentiment': 'positive', 'sentiment_score': 0.7}
+        elif neg_count > pos_count:
+            return {'sentiment': 'negative', 'sentiment_score': 0.7}
+        else:
+            return {'sentiment': 'neutral', 'sentiment_score': 0.6}
 
 # Create a thread pool at module level for background tasks
 _executor = ThreadPoolExecutor(max_workers=4)
